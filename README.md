@@ -1,13 +1,11 @@
 # rust-syndication
 
-Library for serializing Atom and RSS web feeds. Wraps around [rust-atom](https://github.com/vtduncan/rust-atom) [rust-rss](https://github.com/frewsxcv/rust-rss).
+Library for serializing Atom and RSS web feeds. Wraps around [rust-atom](https://github.com/vtduncan/rust-atom) and [rust-rss](https://github.com/frewsxcv/rust-rss).
 
 ## Usage
 
 ### Reading
 ```rust
-use syndication::Feed;
-
 let atom_str = r#"
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
@@ -22,7 +20,10 @@ let atom_str = r#"
 </feed>
 "#;
 
-let Feed::Atom(atom_feed) = atom_str.parse::<Feed>().unwrap();
+match atom_str.parse::<Feed>().unwrap() {
+    Feed::Atom(atom_feed) => println!("Atom feed first entry: {:?}", atom_feed.entries[0].title),
+    _ => {}
+};
 
 let rss_str = r#"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -40,7 +41,11 @@ let rss_str = r#"
 </rss>
 "#;
 
-let Feed::RSS(rss_feed) = rss_str.parse::<Feed>().unwrap();
+match rss_str.parse::<Feed>().unwrap() {
+    Feed::RSS(rss_feed) => println!("RSS feed first entry: {:?}",
+        rss_feed.items[0].title),
+    _ => {}
+};
 ```
 
 ### Writing
