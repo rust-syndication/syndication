@@ -2,7 +2,7 @@
 name = "syndication"
 version = "0.1.0"
 authors = ["Tom Shen <tom@shen.io>"]
-license = "MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/tomshen/rust-syndication"
 description = "Library for serializing Atom and RSS web feeds"
 keywords = ["atom", "blog", "feed", "rss", "syndication"]
