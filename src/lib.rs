@@ -5,11 +5,58 @@ extern crate chrono;
 use std::str::FromStr;
 use chrono::{DateTime, UTC};
 
-pub struct Entry { }
+enum EntryData {
+    Atom(atom_syndication::Feed),
+    RSS(rss::Item),
+}
+
 pub struct Category { }
+pub struct Link { href: String }
+pub struct Person { }
+
+pub struct Entry {
+    // If created from an Atom or RSS entry, this is the original contents
+    source_data: Option<EntryData>,
+
+    // `id` in Atom (required), and `guid` in RSS
+    pub id: Option<String>,
+    // `title` in Atom and RSS, optional only in RSS
+    pub title: Option<String>,
+    // `updated` in Atom (required), not present in RSS
+    pub updated: DateTime<UTC>,
+    // `published` in Atom, and `pub_date` in RSS
+    pub published: Option<DateTime<UTC>>,
+    // `summary` in Atom, and `description` in RSS
+    pub summary: Option<String>,
+    // `content` in Atom, not present in RSS
+    pub content: Option<String>,
+
+    // TODO: Figure out the `source` field in the Atom Entry type (It refers to
+    // the atom Feed type, which owns the Entry, is it a copy of the Feed with
+    // no entries?) How do we include this?
+
+    // `links` in Atom, and `link` in RSS (produces a Vec with 0 or 1 items)
+    pub links: Vec<Link>,
+    // `categories` in both Atom and RSS
+    pub categories: Vec<Category>,
+    // `authors` in Atom, `author` in RSS (produces a Vec with 0 or 1 items)
+    // TODO: Define our own Person type for API stability reasons
+    pub authors: Vec<atom_syndication::Person>,
+    // `contributors` in Atom, not present in RSS (produces an empty Vec)
+    pub contributors: Vec<atom_syndication::Person>,
+
+    // TODO: What is the RSS `comments` field used for?
+}
+
+enum FeedData {
+    Atom(atom_syndication::Feed),
+    RSS(rss::Channel),
+}
+
 pub struct Feed {
     // If created from an RSS or Atom feed, this is the original contents
     source_data: Option<FeedData>,
+
     // `id` in Atom, not present in RSS
     pub id: Option<String>,
     // `title` in both Atom and RSS
@@ -24,17 +71,18 @@ pub struct Feed {
     pub copyright: Option<String>,
     // `icon` in Atom,
     pub icon: Option<String>,
+
     // NOTE: Throwing away the `image` field in Atom
     // `generator` in both Atom and RSS
     // TODO: Add a Generator type so this can be implemented
     // pub generator: Option<Generator>,
+
     // `links` in Atom, and `link` in RSS (will produce a Vec of 1 item)
-    // TODO: Change this to a Link type instead of just a String
-    pub links: Vec<String>,
+    pub links: Vec<Link>,
     // `categories` in both Atom and RSS
     pub categories: Vec<Category>,
-    // `authors` in Atom, not present in RSS (RSS will produce an empty Vec)
     // TODO: Define our own Person type for API stability reasons
+    // `authors` in Atom, not present in RSS (RSS will produce an empty Vec)
     pub authors: Vec<atom_syndication::Person>,
     // `contributors` in Atom, not present in RSS (produces an empty Vec)
     pub contributors: Vec<atom_syndication::Person>,
@@ -53,10 +101,12 @@ impl From<atom_syndication::Feed> for Feed {
             updated: feed.updated.parse::<DateTime<UTC>>().ok(),
             copyright: feed.rights,
             icon: feed.icon,
-            // NOTE: Throwing away the `image` field
+            // NOTE: We throw away the `image` field
             // NOTE: We throw away the generator field
-            // TODO: Define a Link type
-            links: feed.links.into_iter().map(|link| link.href).collect::<Vec<_>>(),
+            // TODO: Add more fields to the link type
+            links: feed.links.into_iter()
+                .map(|link| Link { href: link.href })
+                .collect::<Vec<_>>(),
             // TODO: Handle this once the Category type is defined
             categories: vec![],
             authors: feed.authors,
@@ -69,6 +119,7 @@ impl From<atom_syndication::Feed> for Feed {
 
 impl From<Feed> for atom_syndication::Feed {
     fn from(feed: Feed) -> Self {
+        // Performing no translation at all is both faster, and won't lose any data!
         if let Some(FeedData::Atom(feed)) = feed.source_data {
             feed
         } else {
@@ -85,8 +136,8 @@ impl From<Feed> for atom_syndication::Feed {
                 logo: feed.icon,
                 generator: None,
                 links: feed.links.into_iter()
-                    .map(|href| atom_syndication::Link {
-                        href: href, ..Default::default()
+                    .map(|link| atom_syndication::Link {
+                        href: link.href, ..Default::default()
                     }).collect::<Vec<_>>(),
                 // TODO: Convert from our Category type instead of throwing them away
                 categories: vec![],
@@ -99,10 +150,6 @@ impl From<Feed> for atom_syndication::Feed {
     }
 }
 
-enum FeedData {
-    Atom(atom_syndication::Feed),
-    RSS(rss::Channel),
-}
 
 impl FromStr for FeedData {
     type Err = &'static str;
