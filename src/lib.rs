@@ -22,18 +22,81 @@ pub struct Feed {
     pub updated: Option<DateTime<UTC>>,
     // `rights` in Atom, and `copyright` in RSS
     pub copyright: Option<String>,
-    // `icon` in Atom, and `image` in Atom
+    // `icon` in Atom,
     pub icon: Option<String>,
+    // NOTE: Throwing away the `image` field in Atom
+    // `generator` in both Atom and RSS
+    // TODO: Add a Generator type so this can be implemented
+    // pub generator: Option<Generator>,
     // `links` in Atom, and `link` in RSS (will produce a Vec of 1 item)
+    // TODO: Change this to a Link type instead of just a String
     pub links: Vec<String>,
     // `categories` in both Atom and RSS
     pub categories: Vec<Category>,
     // `authors` in Atom, not present in RSS (RSS will produce an empty Vec)
+    // TODO: Define our own Person type for API stability reasons
     pub authors: Vec<atom_syndication::Person>,
     // `contributors` in Atom, not present in RSS (produces an empty Vec)
     pub contributors: Vec<atom_syndication::Person>,
     // `entries` in Atom, and `items` in RSS
     pub entries: Vec<Entry>,
+}
+
+impl From<atom_syndication::Feed> for Feed {
+    fn from(feed: atom_syndication::Feed) -> Self {
+        Feed {
+            // TODO: We can't move the feed, because we need its contents...
+            source_data: None, // Some(FeedData::Atom(feed)),
+            id: Some(feed.id),
+            title: feed.title,
+            description: feed.subtitle,
+            updated: feed.updated.parse::<DateTime<UTC>>().ok(),
+            copyright: feed.rights,
+            icon: feed.icon,
+            // NOTE: Throwing away the `image` field
+            // NOTE: We throw away the generator field
+            // TODO: Define a Link type
+            links: feed.links.into_iter().map(|link| link.href).collect::<Vec<_>>(),
+            // TODO: Handle this once the Category type is defined
+            categories: vec![],
+            authors: feed.authors,
+            contributors: feed.contributors,
+            // TODO: Handle this once the Entry type is defined
+            entries: vec![],
+        }
+    }
+}
+
+impl From<Feed> for atom_syndication::Feed {
+    fn from(feed: Feed) -> Self {
+        if let Some(FeedData::Atom(feed)) = feed.source_data {
+            feed
+        } else {
+            atom_syndication::Feed {
+                // TODO: Producing an empty string is probably very very bad
+                // is there anything better that can be done...?
+                id: feed.id.unwrap_or(String::from("")),
+                title: feed.title,
+                subtitle: feed.description,
+                // TODO: Is there a better way to handle a missing date here?
+                updated: feed.updated.unwrap_or(UTC::now()).to_rfc3339(),
+                rights: feed.copyright,
+                icon: feed.icon.clone(),
+                logo: feed.icon,
+                generator: None,
+                links: feed.links.into_iter()
+                    .map(|href| atom_syndication::Link {
+                        href: href, ..Default::default()
+                    }).collect::<Vec<_>>(),
+                // TODO: Convert from our Category type instead of throwing them away
+                categories: vec![],
+                authors: feed.authors,
+                contributors: feed.contributors,
+                // TODO: Convert from our Entry type instead of throwing them away
+                entries: vec![],
+            }
+        }
+    }
 }
 
 enum FeedData {
