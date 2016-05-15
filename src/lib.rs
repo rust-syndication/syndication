@@ -26,9 +26,9 @@ pub struct Entry {
     pub updated: DateTime<UTC>,
     // `published` in Atom, and `pub_date` in RSS
     pub published: Option<DateTime<UTC>>,
-    // `summary` in Atom, and `description` in RSS
+    // `summary` in Atom
     pub summary: Option<String>,
-    // `content` in Atom, not present in RSS
+    // `content` in Atom, `description` in RSS
     pub content: Option<String>,
 
     // TODO: Figure out the `source` field in the Atom Entry type (It refers to
@@ -44,8 +44,6 @@ pub struct Entry {
     pub authors: Vec<atom_syndication::Person>,
     // `contributors` in Atom, not present in RSS (produces an empty Vec)
     pub contributors: Vec<atom_syndication::Person>,
-
-    // TODO: What is the RSS `comments` field used for?
 }
 
 impl From<atom_syndication::Entry> for Entry {
@@ -82,7 +80,6 @@ impl From<Entry> for atom_syndication::Entry {
             atom_syndication::Entry {
                 // TODO: How should we handle a missing id?
                 id: entry.id.unwrap_or(String::from("")),
-                // TODO: How should we handle a missing title?
                 title: entry.title.unwrap_or(String::from("")),
                 updated: entry.updated.to_rfc3339(),
                 published: entry.published.map(|date| date.to_rfc3339()),
@@ -107,6 +104,8 @@ enum FeedData {
     RSS(rss::Channel),
 }
 
+// A helpful table of approximately equivalent elements can be found here:
+// http://www.intertwingly.net/wiki/pie/Rss20AndAtom10Compared#head-018c297098e131956bf394c0f7c8b6dd60f5cf78
 pub struct Feed {
     // If created from an RSS or Atom feed, this is the original contents
     source_data: Option<FeedData>,
@@ -123,25 +122,30 @@ pub struct Feed {
     pub updated: Option<DateTime<UTC>>,
     // `rights` in Atom, and `copyright` in RSS
     pub copyright: Option<String>,
-    // `icon` in Atom,
+    // `icon` in Atom, not present in RSS
     pub icon: Option<String>,
+    // `logo` in Atom, and `image` in RSS
+    pub image: Option<String>,
 
-    // NOTE: Throwing away the `image` field in Atom
     // `generator` in both Atom and RSS
     // TODO: Add a Generator type so this can be implemented
     // pub generator: Option<Generator>,
 
-    // `links` in Atom, and `link` in RSS (will produce a Vec of 1 item)
+    // `links` in Atom, and `link` in RSS (produces a 1 item Vec)
     pub links: Vec<Link>,
     // `categories` in both Atom and RSS
     pub categories: Vec<Category>,
     // TODO: Define our own Person type for API stability reasons
-    // `authors` in Atom, not present in RSS (RSS will produce an empty Vec)
+    // TODO: Should the `web_master` be in `contributors`, `authors`, or at all?
+    // `authors` in Atom, `managing_editor` in RSS (produces 1 item Vec)
     pub authors: Vec<atom_syndication::Person>,
-    // `contributors` in Atom, not present in RSS (produces an empty Vec)
+    // `contributors` in Atom, `web_master` in RSS (produces a 1 item Vec)
     pub contributors: Vec<atom_syndication::Person>,
     // `entries` in Atom, and `items` in RSS
     pub entries: Vec<Entry>,
+
+    // TODO: Add more fields that are necessary for RSS
+    // TODO: Fancy translation, e.g. Atom <link rel="via"> = RSS `source`, etc
 }
 
 impl From<atom_syndication::Feed> for Feed {
@@ -157,7 +161,7 @@ impl From<atom_syndication::Feed> for Feed {
                 .map(|date| date.with_timezone(&UTC)),
             copyright: feed.rights,
             icon: feed.icon,
-            // NOTE: We throw away the `image` field
+            image: feed.logo,
             // NOTE: We throw away the generator field
             // TODO: Add more fields to the link type
             links: feed.links.into_iter()
@@ -188,8 +192,8 @@ impl From<Feed> for atom_syndication::Feed {
                 // TODO: Is there a better way to handle a missing date here?
                 updated: feed.updated.unwrap_or(UTC::now()).to_rfc3339(),
                 rights: feed.copyright,
-                icon: feed.icon.clone(),
-                logo: feed.icon,
+                icon: feed.icon,
+                logo: feed.image,
                 generator: None,
                 links: feed.links.into_iter()
                     .map(|link| atom_syndication::Link {
