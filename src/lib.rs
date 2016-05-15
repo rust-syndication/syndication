@@ -56,8 +56,11 @@ impl From<atom_syndication::Entry> for Entry {
             source_data: None,
             id: Some(entry.id),
             title: Some(entry.title),
-            updated: entry.updated.parse::<DateTime<UTC>>().unwrap_or(UTC::now()),
-            published: entry.published.and_then(|date| date.parse::<DateTime<UTC>>().ok()),
+            updated: DateTime::parse_from_rfc3339(entry.updated.as_str())
+                .map(|date| date.with_timezone(&UTC)).unwrap_or(UTC::now()),
+            published: entry.published
+                .and_then(|d| DateTime::parse_from_rfc3339(d.as_str()).ok())
+                .map(|date| date.with_timezone(&UTC)),
             summary: entry.summary,
             content: entry.content,
             links: entry.links.into_iter()
@@ -150,7 +153,8 @@ impl From<atom_syndication::Feed> for Feed {
             id: Some(feed.id),
             title: feed.title,
             description: feed.subtitle,
-            updated: feed.updated.parse::<DateTime<UTC>>().ok(),
+            updated: DateTime::parse_from_rfc3339(feed.updated.as_str()).ok()
+                .map(|date| date.with_timezone(&UTC)),
             copyright: feed.rights,
             icon: feed.icon,
             // NOTE: We throw away the `image` field
