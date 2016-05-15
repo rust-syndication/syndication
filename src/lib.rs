@@ -6,7 +6,7 @@ use std::str::FromStr;
 use chrono::{DateTime, UTC};
 
 enum EntryData {
-    Atom(atom_syndication::Feed),
+    Atom(atom_syndication::Entry),
     RSS(rss::Item),
 }
 
@@ -46,6 +46,57 @@ pub struct Entry {
     pub contributors: Vec<atom_syndication::Person>,
 
     // TODO: What is the RSS `comments` field used for?
+}
+
+impl From<atom_syndication::Entry> for Entry {
+    fn from(entry: atom_syndication::Entry) -> Self {
+        Entry {
+            // TODO: We can't move the entry, because we need it's contents
+            // and none of the atom_syndication types support .clone() ...
+            source_data: None,
+            id: Some(entry.id),
+            title: Some(entry.title),
+            updated: entry.updated.parse::<DateTime<UTC>>().unwrap_or(UTC::now()),
+            published: entry.published.and_then(|date| date.parse::<DateTime<UTC>>().ok()),
+            summary: entry.summary,
+            content: entry.content,
+            links: entry.links.into_iter()
+                .map(|link| Link { href: link.href })
+                .collect::<Vec<_>>(),
+            // TODO: Implement the Category type for converting this
+            categories: vec![],
+            authors: entry.authors,
+            contributors: entry.contributors,
+        }
+    }
+}
+
+impl From<Entry> for atom_syndication::Entry {
+    fn from(entry: Entry) -> Self {
+        if let Some(EntryData::Atom(entry)) = entry.source_data {
+            entry
+        } else {
+            atom_syndication::Entry {
+                // TODO: How should we handle a missing id?
+                id: entry.id.unwrap_or(String::from("")),
+                // TODO: How should we handle a missing title?
+                title: entry.title.unwrap_or(String::from("")),
+                updated: entry.updated.to_rfc3339(),
+                published: entry.published.map(|date| date.to_rfc3339()),
+                source: None,
+                summary: entry.summary,
+                content: entry.content,
+                links: entry.links.into_iter()
+                    .map(|link| atom_syndication::Link {
+                        href: link.href, ..Default::default()
+                    }).collect::<Vec<_>>(),
+                // TODO: Convert from the category type
+                categories: vec![],
+                authors: entry.authors,
+                contributors: entry.contributors,
+            }
+        }
+    }
 }
 
 enum FeedData {
@@ -93,8 +144,9 @@ pub struct Feed {
 impl From<atom_syndication::Feed> for Feed {
     fn from(feed: atom_syndication::Feed) -> Self {
         Feed {
-            // TODO: We can't move the feed, because we need its contents...
-            source_data: None, // Some(FeedData::Atom(feed)),
+            // TODO: We can't move the feed, because we need its contents
+            // and none of the atom_syndication types support .clone() ...
+            source_data: None, // Some(FeedData::Atom(feed.clone())),
             id: Some(feed.id),
             title: feed.title,
             description: feed.subtitle,
@@ -111,8 +163,8 @@ impl From<atom_syndication::Feed> for Feed {
             categories: vec![],
             authors: feed.authors,
             contributors: feed.contributors,
-            // TODO: Handle this once the Entry type is defined
-            entries: vec![],
+            entries: feed.entries.into_iter().map(|entry| entry.into())
+                .collect::<Vec<_>>(),
         }
     }
 }
@@ -143,8 +195,8 @@ impl From<Feed> for atom_syndication::Feed {
                 categories: vec![],
                 authors: feed.authors,
                 contributors: feed.contributors,
-                // TODO: Convert from our Entry type instead of throwing them away
-                entries: vec![],
+                entries: feed.entries.into_iter().map(|entry| entry.into())
+                    .collect::<Vec<_>>(),
             }
         }
     }
