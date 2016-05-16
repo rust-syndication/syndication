@@ -49,9 +49,7 @@ pub struct Entry {
 impl From<atom_syndication::Entry> for Entry {
     fn from(entry: atom_syndication::Entry) -> Self {
         Entry {
-            // TODO: We can't move the entry, because we need it's contents
-            // and none of the atom_syndication types support .clone() ...
-            source_data: None,
+            source_data: Some(EntryData::Atom(entry.clone())),
             id: Some(entry.id),
             title: Some(entry.title),
             updated: DateTime::parse_from_rfc3339(entry.updated.as_str())
@@ -151,9 +149,7 @@ pub struct Feed {
 impl From<atom_syndication::Feed> for Feed {
     fn from(feed: atom_syndication::Feed) -> Self {
         Feed {
-            // TODO: We can't move the feed, because we need its contents
-            // and none of the atom_syndication types support .clone() ...
-            source_data: None, // Some(FeedData::Atom(feed.clone())),
+            source_data: Some(FeedData::Atom(feed.clone())),
             id: Some(feed.id),
             title: feed.title,
             description: feed.subtitle,

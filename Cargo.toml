@@ -9,6 +9,6 @@ keywords = ["atom", "blog", "feed", "rss", "syndication"]
 exclude = ["test-data/*"]
 
 [dependencies]
-atom_syndication = "0.1"
+atom_syndication = "^0.1.4"
 rss = "0.3"
 chrono = "0.2"
