@@ -206,6 +206,19 @@ impl From<Feed> for atom_syndication::Feed {
     }
 }
 
+impl FromStr for Feed {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.parse::<FeedData>() {
+            Ok(FeedData::Atom(feed)) => Ok(feed.into()),
+            // TODO: Implement the RSS conversions
+            Ok(FeedData::RSS(_)) => Err("RSS Unimplemented"),
+            Err(e) => Err(e),
+        }
+    }
+}
+
 
 impl FromStr for FeedData {
     type Err = &'static str;

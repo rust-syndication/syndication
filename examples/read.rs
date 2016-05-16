@@ -17,10 +17,7 @@ fn main() {
     </feed>
     "#;
 
-    match atom_str.parse::<Feed>().unwrap() {
-        Feed::Atom(atom_feed) => println!("Atom feed first entry: {:?}", atom_feed.entries[0].title),
-        _ => {}
-    };
+    println!("Atom feed first entry: {:?}", atom_str.parse::<Feed>().unwrap().entries[0].title);
 
     let rss_str = r#"
     <?xml version="1.0" encoding="UTF-8"?>
@@ -38,9 +35,5 @@ fn main() {
     </rss>
     "#;
 
-    match rss_str.parse::<Feed>().unwrap() {
-        Feed::RSS(rss_feed) => println!("RSS feed first entry: {:?}",
-            rss_feed.items[0].title),
-        _ => {}
-    };
+    println!("RSS feed first entry: {:?}", rss_str.parse::<Feed>().unwrap().entries[0].title);
 }
