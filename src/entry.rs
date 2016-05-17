@@ -1,13 +1,13 @@
-extern crate atom_syndication;
-extern crate rss;
-extern crate chrono;
+use atom_syndication as atom;
+use rss;
 
 use chrono::{DateTime, UTC};
 use category::Category;
 use link::Link;
+use person::Person;
 
 enum EntryData {
-    Atom(atom_syndication::Entry),
+    Atom(atom::Entry),
     RSS(rss::Item),
 }
 
@@ -37,60 +37,51 @@ pub struct Entry {
     // `categories` in both Atom and RSS
     pub categories: Vec<Category>,
     // `authors` in Atom, `author` in RSS (produces a Vec with 0 or 1 items)
-    // TODO: Define our own Person type for API stability reasons
-    pub authors: Vec<atom_syndication::Person>,
+    pub authors: Vec<Person>,
     // `contributors` in Atom, not present in RSS (produces an empty Vec)
-    pub contributors: Vec<atom_syndication::Person>,
+    pub contributors: Vec<Person>,
 }
 
-impl From<atom_syndication::Entry> for Entry {
-    fn from(entry: atom_syndication::Entry) -> Self {
+impl From<atom::Entry> for Entry {
+    fn from(entry: atom::Entry) -> Self {
         Entry {
             source_data: Some(EntryData::Atom(entry.clone())),
             id: Some(entry.id),
             title: Some(entry.title),
             updated: DateTime::parse_from_rfc3339(entry.updated.as_str())
                 .map(|date| date.with_timezone(&UTC))
-                .unwrap_or(UTC::now()),
+                .unwrap_or_else(|_| UTC::now()),
             published: entry.published
                 .and_then(|d| DateTime::parse_from_rfc3339(d.as_str()).ok())
                 .map(|date| date.with_timezone(&UTC)),
             summary: entry.summary,
             content: entry.content,
-            links: entry.links
-                .into_iter()
-                .map(|link| Link { href: link.href })
-                .collect::<Vec<_>>(),
-            // TODO: Implement the Category type for converting this
-            categories: vec![],
-            authors: entry.authors,
-            contributors: entry.contributors,
+            links: entry.links.into_iter().map(|link| link.into()).collect(),
+            categories: entry.categories.into_iter().map(|category| category.into()).collect(),
+            authors: entry.authors.into_iter().map(|person| person.into()).collect(),
+            contributors: entry.contributors.into_iter().map(|person| person.into()).collect(),
         }
     }
 }
 
-impl From<Entry> for atom_syndication::Entry {
+impl From<Entry> for atom::Entry {
     fn from(entry: Entry) -> Self {
         if let Some(EntryData::Atom(entry)) = entry.source_data {
             entry
         } else {
-            atom_syndication::Entry {
+            atom::Entry {
                 // TODO: How should we handle a missing id?
-                id: entry.id.unwrap_or(String::from("")),
-                title: entry.title.unwrap_or(String::from("")),
+                id: entry.id.unwrap_or_else(|| String::from("")),
+                title: entry.title.unwrap_or_else(|| String::from("")),
                 updated: entry.updated.to_rfc3339(),
                 published: entry.published.map(|date| date.to_rfc3339()),
                 source: None,
                 summary: entry.summary,
                 content: entry.content,
-                links: entry.links
-                    .into_iter()
-                    .map(|link| atom_syndication::Link { href: link.href, ..Default::default() })
-                    .collect::<Vec<_>>(),
-                // TODO: Convert from the category type
-                categories: vec![],
-                authors: entry.authors,
-                contributors: entry.contributors,
+                links: entry.links.into_iter().map(|link| link.into()).collect(),
+                categories: entry.categories.into_iter().map(|category| category.into()).collect(),
+                authors: entry.authors.into_iter().map(|person| person.into()).collect(),
+                contributors: entry.contributors.into_iter().map(|person| person.into()).collect(),
             }
         }
     }

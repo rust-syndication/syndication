@@ -1,21 +1,22 @@
-extern crate atom_syndication;
-extern crate rss;
-extern crate chrono;
+use atom_syndication as atom;
+use rss;
 
 use std::str::FromStr;
 use chrono::{DateTime, UTC};
+use link::Link;
+use person::Person;
+use generator::Generator;
 
 use category::Category;
-use link::Link;
 use entry::Entry;
 
 enum FeedData {
-    Atom(atom_syndication::Feed),
+    Atom(atom::Feed),
     RSS(rss::Channel),
 }
 
 // A helpful table of approximately equivalent elements can be found here:
-// http://www.intertwingly.net/wiki/pie/Rss20AndAtom10Compared#head-018c297098e131956bf394c0f7c8b6dd60f5cf78
+// http://www.intertwingly.net/wiki/pie/Rss20AndAtom10Compared#table
 pub struct Feed {
     // If created from an RSS or Atom feed, this is the original contents
     source_data: Option<FeedData>,
@@ -38,27 +39,24 @@ pub struct Feed {
     pub image: Option<String>,
 
     // `generator` in both Atom and RSS
-    // TODO: Add a Generator type so this can be implemented
-    // pub generator: Option<Generator>,
-    //
+    pub generator: Option<Generator>,
     // `links` in Atom, and `link` in RSS (produces a 1 item Vec)
     pub links: Vec<Link>,
     // `categories` in both Atom and RSS
     pub categories: Vec<Category>,
-    // TODO: Define our own Person type for API stability reasons
     // TODO: Should the `web_master` be in `contributors`, `authors`, or at all?
     // `authors` in Atom, `managing_editor` in RSS (produces 1 item Vec)
-    pub authors: Vec<atom_syndication::Person>,
+    pub authors: Vec<Person>,
     // `contributors` in Atom, `web_master` in RSS (produces a 1 item Vec)
-    pub contributors: Vec<atom_syndication::Person>,
+    pub contributors: Vec<Person>,
     // `entries` in Atom, and `items` in RSS
     // TODO: Add more fields that are necessary for RSS
     // TODO: Fancy translation, e.g. Atom <link rel="via"> = RSS `source`
     pub entries: Vec<Entry>,
 }
 
-impl From<atom_syndication::Feed> for Feed {
-    fn from(feed: atom_syndication::Feed) -> Self {
+impl From<atom::Feed> for Feed {
+    fn from(feed: atom::Feed) -> Self {
         Feed {
             source_data: Some(FeedData::Atom(feed.clone())),
             id: Some(feed.id),
@@ -70,16 +68,11 @@ impl From<atom_syndication::Feed> for Feed {
             copyright: feed.rights,
             icon: feed.icon,
             image: feed.logo,
-            // NOTE: We throw away the generator field
-            // TODO: Add more fields to the link type
-            links: feed.links
-                .into_iter()
-                .map(|link| Link { href: link.href })
-                .collect::<Vec<_>>(),
-            // TODO: Handle this once the Category type is defined
-            categories: vec![],
-            authors: feed.authors,
-            contributors: feed.contributors,
+            generator: feed.generator.map(|generator| generator.into()),
+            links: feed.links.into_iter().map(|link| link.into()).collect(),
+            categories: feed.categories.into_iter().map(|person| person.into()).collect(),
+            authors: feed.authors.into_iter().map(|person| person.into()).collect(),
+            contributors: feed.contributors.into_iter().map(|person| person.into()).collect(),
             entries: feed.entries
                 .into_iter()
                 .map(|entry| entry.into())
@@ -88,32 +81,28 @@ impl From<atom_syndication::Feed> for Feed {
     }
 }
 
-impl From<Feed> for atom_syndication::Feed {
+impl From<Feed> for atom::Feed {
     fn from(feed: Feed) -> Self {
         // Performing no translation at all is both faster, and won't lose any data!
         if let Some(FeedData::Atom(feed)) = feed.source_data {
             feed
         } else {
-            atom_syndication::Feed {
+            atom::Feed {
                 // TODO: Producing an empty string is probably very very bad
                 // is there anything better that can be done...?
-                id: feed.id.unwrap_or(String::from("")),
+                id: feed.id.unwrap_or_else(|| String::from("")),
                 title: feed.title,
                 subtitle: feed.description,
                 // TODO: Is there a better way to handle a missing date here?
-                updated: feed.updated.unwrap_or(UTC::now()).to_rfc3339(),
+                updated: feed.updated.unwrap_or_else(UTC::now).to_rfc3339(),
                 rights: feed.copyright,
                 icon: feed.icon,
                 logo: feed.image,
                 generator: None,
-                links: feed.links
-                    .into_iter()
-                    .map(|link| atom_syndication::Link { href: link.href, ..Default::default() })
-                    .collect::<Vec<_>>(),
-                // TODO: Convert from our Category type instead of throwing them away
-                categories: vec![],
-                authors: feed.authors,
-                contributors: feed.contributors,
+                links: feed.links.into_iter().map(|link| link.into()).collect(),
+                categories: feed.categories.into_iter().map(|category| category.into()).collect(),
+                authors: feed.authors.into_iter().map(|person| person.into()).collect(),
+                contributors: feed.contributors.into_iter().map(|person| person.into()).collect(),
                 entries: feed.entries
                     .into_iter()
                     .map(|entry| entry.into())
@@ -140,7 +129,7 @@ impl FromStr for FeedData {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.parse::<atom_syndication::Feed>() {
+        match s.parse::<atom::Feed>() {
             Ok(feed) => Ok(FeedData::Atom(feed)),
             _ => {
                 match s.parse::<rss::Rss>() {
@@ -154,17 +143,17 @@ impl FromStr for FeedData {
 
 impl ToString for FeedData {
     fn to_string(&self) -> String {
-        match self {
-            &FeedData::Atom(ref atom_feed) => atom_feed.to_string(),
-            &FeedData::RSS(ref rss_channel) => rss::Rss(rss_channel.clone()).to_string(),
+        match *self {
+            FeedData::Atom(ref atom_feed) => atom_feed.to_string(),
+            FeedData::RSS(ref rss_channel) => rss::Rss(rss_channel.clone()).to_string(),
         }
     }
 }
 
 #[cfg(test)]
 mod test {
-    extern crate atom_syndication;
-    extern crate rss;
+    use atom_syndication as atom;
+    use rss;
 
     use std::fs::File;
     use std::io::Read;
@@ -195,16 +184,15 @@ mod test {
     // Source: https://github.com/vtduncan/rust-atom/blob/master/src/lib.rs
     #[test]
     fn test_atom_to_string() {
-        let author =
-            atom_syndication::Person { name: "N. Blogger".to_string(), ..Default::default() };
+        let author = atom::Person { name: "N. Blogger".to_string(), ..Default::default() };
 
-        let entry = atom_syndication::Entry {
+        let entry = atom::Entry {
             title: "My first post!".to_string(),
             content: Some("This is my first post".to_string()),
             ..Default::default()
         };
 
-        let feed = FeedData::Atom(atom_syndication::Feed {
+        let feed = FeedData::Atom(atom::Feed {
             title: "My Blog".to_string(),
             authors: vec![author],
             entries: vec![entry],
