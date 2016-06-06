@@ -1,6 +1,6 @@
 [package]
 name = "syndication"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Tom Shen <tom@shen.io>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tomshen/rust-syndication"
@@ -10,4 +10,4 @@ exclude = ["test-data/*"]
 
 [dependencies]
 atom_syndication = "0.1"
-rss = "0.2"
+rss = "0.3"
