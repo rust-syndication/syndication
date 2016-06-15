@@ -1,14 +1,16 @@
 use atom_syndication as atom;
 use rss;
 
+use std::str::FromStr;
 use chrono::{DateTime, UTC};
 use category::Category;
 use link::Link;
 use person::Person;
+use guid::Guid;
 
 enum EntryData {
     Atom(atom::Entry),
-    RSS(rss::Item),
+    Rss(rss::Item),
 }
 
 pub struct Entry {
@@ -16,7 +18,7 @@ pub struct Entry {
     source_data: Option<EntryData>,
 
     // `id` in Atom (required), and `guid` in RSS
-    pub id: Option<String>,
+    pub id: Option<Guid>,
     // `title` in Atom and RSS, optional only in RSS
     pub title: Option<String>,
     // `updated` in Atom (required), not present in RSS
@@ -40,13 +42,15 @@ pub struct Entry {
     pub authors: Vec<Person>,
     // `contributors` in Atom, not present in RSS (produces an empty Vec)
     pub contributors: Vec<Person>,
+    // not present in Atom (produces None), `comments` in RSS
+    pub comments: Option<String>,
 }
 
 impl From<atom::Entry> for Entry {
     fn from(entry: atom::Entry) -> Self {
         Entry {
             source_data: Some(EntryData::Atom(entry.clone())),
-            id: Some(entry.id),
+            id: Some(Guid::from_id(entry.id)),
             title: Some(entry.title),
             updated: DateTime::parse_from_rfc3339(entry.updated.as_str())
                 .map(|date| date.with_timezone(&UTC))
@@ -60,6 +64,7 @@ impl From<atom::Entry> for Entry {
             categories: entry.categories.into_iter().map(|category| category.into()).collect(),
             authors: entry.authors.into_iter().map(|person| person.into()).collect(),
             contributors: entry.contributors.into_iter().map(|person| person.into()).collect(),
+            comments: None,
         }
     }
 }
@@ -71,10 +76,11 @@ impl From<Entry> for atom::Entry {
         } else {
             atom::Entry {
                 // TODO: How should we handle a missing id?
-                id: entry.id.unwrap_or_else(|| String::from("")),
+                id: entry.id.unwrap_or_else(|| Guid::from_id("".into())).id,
                 title: entry.title.unwrap_or_else(|| String::from("")),
                 updated: entry.updated.to_rfc3339(),
                 published: entry.published.map(|date| date.to_rfc3339()),
+                // TODO: Figure out this thing...
                 source: None,
                 summary: entry.summary,
                 content: entry.content,
@@ -82,6 +88,46 @@ impl From<Entry> for atom::Entry {
                 categories: entry.categories.into_iter().map(|category| category.into()).collect(),
                 authors: entry.authors.into_iter().map(|person| person.into()).collect(),
                 contributors: entry.contributors.into_iter().map(|person| person.into()).collect(),
+            }
+        }
+    }
+}
+
+impl From<rss::Item> for Entry {
+    fn from(entry: rss::Item) -> Self {
+        let entry_clone = entry.clone();
+        let date = entry.pub_date.and_then(|d| DateTime::from_str(&d[..]).ok());
+        Entry {
+            source_data: Some(EntryData::Rss(entry_clone)),
+            id: entry.guid.map(|id| id.into()),
+            title: entry.title,
+            updated: date.clone().unwrap_or_else(UTC::now),
+            published: date,
+            summary: None,
+            content: entry.description,
+            links: entry.link.into_iter().map(Link::from_href).collect(),
+            categories: entry.categories.into_iter().map(|category| category.into()).collect(),
+            authors: entry.author.into_iter().map(Person::from_name).collect(),
+            contributors: vec![],
+            comments: entry.comments,
+        }
+    }
+}
+
+impl From<Entry> for rss::Item {
+    fn from(entry: Entry) -> rss::Item {
+        if let Some(EntryData::Rss(entry)) = entry.source_data {
+            entry
+        } else {
+            rss::Item {
+                guid: entry.id.map(|id| id.into()),
+                title: entry.title,
+                author: entry.authors.into_iter().next().map(|person| person.name),
+                pub_date: entry.published.map(|date| date.to_rfc2822()),
+                description: entry.content,
+                link: entry.links.into_iter().next().map(|link| link.href),
+                categories: entry.categories.into_iter().map(|category| category.into()).collect(),
+                comments: entry.comments,
             }
         }
     }
