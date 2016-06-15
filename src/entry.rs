@@ -3,6 +3,7 @@ use rss;
 
 use std::str::FromStr;
 use chrono::{DateTime, UTC};
+
 use category::Category;
 use link::Link;
 use person::Person;
@@ -101,7 +102,7 @@ impl From<rss::Item> for Entry {
             source_data: Some(EntryData::Rss(entry_clone)),
             id: entry.guid.map(|id| id.into()),
             title: entry.title,
-            updated: date.clone().unwrap_or_else(UTC::now),
+            updated: date.unwrap_or_else(UTC::now),
             published: date,
             summary: None,
             content: entry.description,

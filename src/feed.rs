@@ -3,16 +3,18 @@ use rss;
 
 use std::str::FromStr;
 use chrono::{DateTime, UTC};
+
 use link::Link;
 use person::Person;
 use generator::Generator;
-
 use category::Category;
 use entry::Entry;
+use image::Image;
+use text_input::TextInput;
 
 enum FeedData {
     Atom(atom::Feed),
-    RSS(rss::Channel),
+    Rss(rss::Channel),
 }
 
 // A helpful table of approximately equivalent elements can be found here:
@@ -36,7 +38,7 @@ pub struct Feed {
     // `icon` in Atom, not present in RSS
     pub icon: Option<String>,
     // `logo` in Atom, and `image` in RSS
-    pub image: Option<String>,
+    pub image: Option<Image>,
 
     // `generator` in both Atom and RSS
     pub generator: Option<Generator>,
@@ -44,21 +46,39 @@ pub struct Feed {
     pub links: Vec<Link>,
     // `categories` in both Atom and RSS
     pub categories: Vec<Category>,
-    // TODO: Should the `web_master` be in `contributors`, `authors`, or at all?
     // `authors` in Atom, `managing_editor` in RSS (produces 1 item Vec)
+    // TODO: Should the `web_master` be in `contributors`, `authors`, or at all?
     pub authors: Vec<Person>,
     // `contributors` in Atom, `web_master` in RSS (produces a 1 item Vec)
     pub contributors: Vec<Person>,
     // `entries` in Atom, and `items` in RSS
-    // TODO: Add more fields that are necessary for RSS
     // TODO: Fancy translation, e.g. Atom <link rel="via"> = RSS `source`
     pub entries: Vec<Entry>,
+
+    // TODO: Add more fields that are necessary for RSS
+    // `ttl` in RSS, not present in Atom
+    pub ttl: Option<String>,
+    // `skip_hours` in RSS, not present in Atom
+    pub skip_hours: Option<String>,
+    // `skip_days` in RSS, not present in Atom
+    pub skip_days: Option<String>,
+    // `text_input` in RSS, not present in Atom
+    pub text_input: Option<TextInput>,
+    // `language` in RSS, not present in Atom
+    pub language: Option<String>,
+    // `docs` in RSS, not present in Atom
+    pub docs: Option<String>,
+    // `rating` in RSS, not present in Atom
+    pub rating: Option<String>,
 }
 
 impl From<atom::Feed> for Feed {
     fn from(feed: atom::Feed) -> Self {
+        let feed_clone = feed.clone();
+        let title = feed.title.clone();
+        let link = feed.links.first().map_or_else(|| "".into(), |link| link.href.clone());
         Feed {
-            source_data: Some(FeedData::Atom(feed.clone())),
+            source_data: Some(FeedData::Atom(feed_clone)),
             id: Some(feed.id),
             title: feed.title,
             description: feed.subtitle,
@@ -67,7 +87,17 @@ impl From<atom::Feed> for Feed {
                 .map(|date| date.with_timezone(&UTC)),
             copyright: feed.rights,
             icon: feed.icon,
-            image: feed.logo,
+            // (Note, in practice the image <title> and <link> should have the same value as the
+            // channel's <title> and <link>.)
+            image: feed.logo.map(|url| {
+                Image {
+                    url: url,
+                    title: title,
+                    link: link,
+                    width: None,
+                    height: None,
+                }
+            }),
             generator: feed.generator.map(|generator| generator.into()),
             links: feed.links.into_iter().map(|link| link.into()).collect(),
             categories: feed.categories.into_iter().map(|person| person.into()).collect(),
@@ -77,6 +107,13 @@ impl From<atom::Feed> for Feed {
                 .into_iter()
                 .map(|entry| entry.into())
                 .collect::<Vec<_>>(),
+            ttl: None,
+            skip_hours: None,
+            skip_days: None,
+            text_input: None,
+            language: None,
+            docs: None,
+            rating: None,
         }
     }
 }
@@ -97,7 +134,7 @@ impl From<Feed> for atom::Feed {
                 updated: feed.updated.unwrap_or_else(UTC::now).to_rfc3339(),
                 rights: feed.copyright,
                 icon: feed.icon,
-                logo: feed.image,
+                logo: feed.image.map(|image| image.url),
                 generator: None,
                 links: feed.links.into_iter().map(|link| link.into()).collect(),
                 categories: feed.categories.into_iter().map(|category| category.into()).collect(),
@@ -112,14 +149,71 @@ impl From<Feed> for atom::Feed {
     }
 }
 
+impl From<rss::Channel> for Feed {
+    fn from(feed: rss::Channel) -> Self {
+        Feed {
+            source_data: Some(FeedData::Rss(feed.clone())),
+            id: None,
+            title: feed.title,
+            description: Some(feed.description),
+            updated: None,
+            copyright: feed.copyright,
+            icon: None,
+            image: feed.image.map(|image| image.into()),
+            generator: feed.generator.map(Generator::from_name),
+            links: vec![Link::from_href(feed.link)],
+            categories: feed.categories.into_iter().map(|person| person.into()).collect(),
+            authors: feed.managing_editor.into_iter().map(Person::from_name).collect(),
+            contributors: feed.web_master.into_iter().map(Person::from_name).collect(),
+            entries: feed.items.into_iter().map(|entry| entry.into()).collect(),
+            ttl: feed.ttl,
+            skip_hours: feed.skip_hours,
+            skip_days: feed.skip_days,
+            text_input: feed.text_input.map(|input| input.into()),
+            rating: feed.rating,
+            language: feed.language,
+            docs: feed.docs,
+        }
+    }
+}
+
+impl From<Feed> for rss::Channel {
+    fn from(feed: Feed) -> rss::Channel {
+        if let Some(FeedData::Rss(feed)) = feed.source_data {
+            feed
+        } else {
+            rss::Channel {
+                title: feed.title,
+                description: feed.description.unwrap_or("".into()),
+                pub_date: None,
+                last_build_date: feed.updated.map(|date| date.to_rfc2822()),
+                link: feed.links.into_iter().next().map_or_else(|| "".into(), |link| link.href),
+                items: feed.entries.into_iter().map(|entry| entry.into()).collect(),
+                categories: feed.categories.into_iter().map(|category| category.into()).collect(),
+                image: feed.image.map(|image| image.into()),
+                generator: feed.generator.map(|generator| generator.name),
+                managing_editor: feed.authors.into_iter().next().map(|person| person.name),
+                web_master: feed.contributors.into_iter().next().map(|person| person.name),
+                copyright: feed.copyright,
+                ttl: feed.ttl,
+                skip_hours: feed.skip_hours,
+                skip_days: feed.skip_days,
+                text_input: feed.text_input.map(|input| input.into()),
+                rating: feed.rating,
+                language: feed.language,
+                docs: feed.docs,
+            }
+        }
+    }
+}
+
 impl FromStr for Feed {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.parse::<FeedData>() {
             Ok(FeedData::Atom(feed)) => Ok(feed.into()),
-            // TODO: Implement the RSS conversions
-            Ok(FeedData::RSS(_)) => Err("RSS Unimplemented"),
+            Ok(FeedData::Rss(feed)) => Ok(feed.into()),
             Err(e) => Err(e),
         }
     }
@@ -133,7 +227,7 @@ impl FromStr for FeedData {
             Ok(feed) => Ok(FeedData::Atom(feed)),
             _ => {
                 match s.parse::<rss::Rss>() {
-                    Ok(rss::Rss(channel)) => Ok(FeedData::RSS(channel)),
+                    Ok(rss::Rss(channel)) => Ok(FeedData::Rss(channel)),
                     _ => Err("Could not parse XML as Atom or RSS from input"),
                 }
             }
@@ -145,7 +239,7 @@ impl ToString for FeedData {
     fn to_string(&self) -> String {
         match *self {
             FeedData::Atom(ref atom_feed) => atom_feed.to_string(),
-            FeedData::RSS(ref rss_channel) => rss::Rss(rss_channel.clone()).to_string(),
+            FeedData::Rss(ref rss_channel) => rss::Rss(rss_channel.clone()).to_string(),
         }
     }
 }
@@ -226,7 +320,7 @@ mod test {
             ..Default::default()
         };
 
-        let rss = FeedData::RSS(channel);
+        let rss = FeedData::Rss(channel);
         assert_eq!(rss.to_string(),
                    "<?xml version=\'1.0\' encoding=\'UTF-8\'?><rss \
                     version=\'2.0\'><channel><title>My \
