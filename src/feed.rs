@@ -84,6 +84,26 @@ pub struct Feed {
     pub rating: Option<String>,
 }
 
+impl Feed {
+    pub fn to_rss_string(&self) -> String {
+        if let Some(FeedData::Rss(ref feed)) = self.source_data {
+            rss::Rss(feed.clone()).to_string()
+        } else {
+            let rss: rss::Channel = self.clone().into();
+            rss::Rss(rss).to_string()
+        }
+    }
+
+    pub fn to_atom_string(&self) -> String {
+        if let Some(FeedData::Atom(ref feed)) = self.source_data {
+            feed.to_string()
+        } else {
+            let atom: atom::Feed = self.clone().into();
+            atom.to_string()
+        }
+    }
+}
+
 impl From<atom::Feed> for Feed {
     fn from(feed: atom::Feed) -> Self {
         let feed_clone = feed.clone();
@@ -265,7 +285,7 @@ mod test {
     use std::io::Read;
     use std::str::FromStr;
 
-    use feed::FeedData;
+    use super::{FeedData, Feed};
 
     // Source: https://github.com/vtduncan/rust-atom/blob/master/src/lib.rs
     #[test]
@@ -274,7 +294,18 @@ mod test {
         let mut atom_string = String::new();
         file.read_to_string(&mut atom_string).unwrap();
         let feed = FeedData::from_str(&atom_string).unwrap();
+        // TODO: Assert a stronger property on this
         assert!(feed.to_string().len() > 0);
+    }
+
+    #[test]
+    fn test_feed_from_atom_file() {
+        let mut file = File::open("test-data/atom.xml").unwrap();
+        let mut atom_string = String::new();
+        file.read_to_string(&mut atom_string).unwrap();
+        let feed = Feed::from_str(&atom_string).unwrap();
+        // TODO: Assert a stronger property than this
+        assert!(feed.to_atom_string().len() > 0);
     }
 
     // Source: https://github.com/frewsxcv/rust-rss/blob/master/src/lib.rs
@@ -284,7 +315,18 @@ mod test {
         let mut rss_string = String::new();
         file.read_to_string(&mut rss_string).unwrap();
         let rss = FeedData::from_str(&rss_string).unwrap();
+        // TODO: Assert a stronger property than this
         assert!(rss.to_string().len() > 0);
+    }
+
+    #[test]
+    fn test_feed_from_rss_file() {
+        let mut file = File::open("test-data/rss.xml").unwrap();
+        let mut rss_string = String::new();
+        file.read_to_string(&mut rss_string).unwrap();
+        let rss = Feed::from_str(&rss_string).unwrap();
+        // TODO: Assert a stronger property than this
+        assert!(rss.to_rss_string().len() > 0);
     }
 
     // Source: https://github.com/vtduncan/rust-atom/blob/master/src/lib.rs
