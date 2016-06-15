@@ -1,5 +1,6 @@
 use atom_syndication as atom;
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Generator {
     pub name: String,
     pub uri: Option<String>,

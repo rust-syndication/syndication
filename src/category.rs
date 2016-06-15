@@ -1,6 +1,7 @@
 use atom_syndication as atom;
 use rss;
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Category {
     pub term: String,
     pub scheme: Option<String>,

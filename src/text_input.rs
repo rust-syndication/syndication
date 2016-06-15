@@ -1,5 +1,6 @@
 use rss;
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct TextInput {
     pub title: String,
     pub description: String,

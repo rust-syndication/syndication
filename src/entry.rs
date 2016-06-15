@@ -2,6 +2,7 @@ use atom_syndication as atom;
 use rss;
 
 use std::str::FromStr;
+use std::fmt::{Formatter, Debug, Error};
 use chrono::{DateTime, UTC};
 
 use category::Category;
@@ -9,11 +10,22 @@ use link::Link;
 use person::Person;
 use guid::Guid;
 
+#[derive(Clone)]
 enum EntryData {
     Atom(atom::Entry),
     Rss(rss::Item),
 }
 
+impl Debug for EntryData {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        match *self {
+            EntryData::Atom(_) => write!(f, "Atom(_)"),
+            EntryData::Rss(_) => write!(f, "Rss(_)"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Entry {
     // If created from an Atom or RSS entry, this is the original contents
     source_data: Option<EntryData>,

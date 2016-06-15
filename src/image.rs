@@ -1,5 +1,6 @@
 use rss;
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Image {
     pub url: String,
     pub title: String,

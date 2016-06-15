@@ -1,5 +1,6 @@
 use atom_syndication as atom;
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct Person {
     pub name: String,
     pub uri: Option<String>,

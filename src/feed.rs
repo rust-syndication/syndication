@@ -2,6 +2,7 @@ use atom_syndication as atom;
 use rss;
 
 use std::str::FromStr;
+use std::fmt::{Debug, Formatter, Error};
 use chrono::{DateTime, UTC};
 
 use link::Link;
@@ -12,13 +13,24 @@ use entry::Entry;
 use image::Image;
 use text_input::TextInput;
 
+#[derive(Clone)]
 enum FeedData {
     Atom(atom::Feed),
     Rss(rss::Channel),
 }
 
+impl Debug for FeedData {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        match *self {
+            FeedData::Atom(_) => write!(f, "Atom(_)"),
+            FeedData::Rss(_) => write!(f, "Rss(_)"),
+        }
+    }
+}
+
 // A helpful table of approximately equivalent elements can be found here:
 // http://www.intertwingly.net/wiki/pie/Rss20AndAtom10Compared#table
+#[derive(Debug, Clone)]
 pub struct Feed {
     // If created from an RSS or Atom feed, this is the original contents
     source_data: Option<FeedData>,

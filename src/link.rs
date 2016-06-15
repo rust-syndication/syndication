@@ -1,5 +1,6 @@
 use atom_syndication as atom;
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Link {
     pub href: String,
     pub rel: Option<String>,

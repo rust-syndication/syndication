@@ -1,5 +1,6 @@
 use rss;
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Guid {
     pub is_permalink: bool,
     pub id: String,
