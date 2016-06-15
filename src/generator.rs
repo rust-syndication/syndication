@@ -26,12 +26,12 @@ impl From<atom::Generator> for Generator {
     }
 }
 
-impl Into<atom::Generator> for Generator {
-    fn into(self) -> atom::Generator {
+impl From<Generator> for atom::Generator {
+    fn from(generator: Generator) -> atom::Generator {
         atom::Generator {
-            name: self.name,
-            uri: self.uri,
-            version: self.version,
+            name: generator.name,
+            uri: generator.uri,
+            version: generator.version,
         }
     }
 }

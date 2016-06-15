@@ -26,12 +26,12 @@ impl From<atom::Person> for Person {
     }
 }
 
-impl Into<atom::Person> for Person {
-    fn into(self) -> atom::Person {
+impl From<Person> for atom::Person {
+    fn from(person: Person) -> atom::Person {
         atom::Person {
-            name: self.name,
-            uri: self.uri,
-            email: self.email,
+            name: person.name,
+            uri: person.uri,
+            email: person.email,
         }
     }
 }

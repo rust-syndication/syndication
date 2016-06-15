@@ -17,6 +17,16 @@ impl From<atom::Category> for Category {
     }
 }
 
+impl From<Category> for atom::Category {
+    fn from(category: Category) -> atom::Category {
+        atom::Category {
+            term: category.term,
+            scheme: category.scheme,
+            label: category.label,
+        }
+    }
+}
+
 impl From<rss::Category> for Category {
     fn from(category: rss::Category) -> Category {
         Category {
@@ -28,21 +38,11 @@ impl From<rss::Category> for Category {
     }
 }
 
-impl Into<atom::Category> for Category {
-    fn into(self) -> atom::Category {
-        atom::Category {
-            term: self.term,
-            scheme: self.scheme,
-            label: self.label,
-        }
-    }
-}
-
-impl Into<rss::Category> for Category {
-    fn into(self) -> rss::Category {
+impl From<Category> for rss::Category {
+    fn from(category: Category) -> rss::Category {
         rss::Category {
-            value: self.term,
-            domain: self.scheme,
+            value: category.term,
+            domain: category.scheme,
         }
     }
 }

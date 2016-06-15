@@ -35,15 +35,15 @@ impl From<atom::Link> for Link {
     }
 }
 
-impl Into<atom::Link> for Link {
-    fn into(self) -> atom::Link {
+impl From<Link> for atom::Link {
+    fn from(link: Link) -> atom::Link {
         atom::Link {
-            href: self.href,
-            rel: self.rel,
-            mediatype: self.mediatype,
-            hreflang: self.hreflang,
-            title: self.title,
-            length: self.length,
+            href: link.href,
+            rel: link.rel,
+            mediatype: link.mediatype,
+            hreflang: link.hreflang,
+            title: link.title,
+            length: link.length,
         }
     }
 }
