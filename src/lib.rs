@@ -72,7 +72,7 @@ mod test {
 
         let entry = atom_syndication::Entry {
             title: "My first post!".to_string(),
-            content: Some("This is my first post".to_string()),
+            content: Some(atom_syndication::Content::Text("This is my first post".to_string())),
             ..Default::default()
         };
 
@@ -83,7 +83,7 @@ mod test {
             ..Default::default()
         });
 
-        assert_eq!(feed.to_string(), "<?xml version=\"1.0\" encoding=\"utf-8\"?><feed xmlns=\'http://www.w3.org/2005/Atom\'><id></id><title>My Blog</title><updated></updated><author><name>N. Blogger</name></author><entry><id></id><title>My first post!</title><updated></updated><content>This is my first post</content></entry></feed>");
+        assert_eq!(feed.to_string(), "<?xml version=\"1.0\" encoding=\"utf-8\"?><feed xmlns=\'http://www.w3.org/2005/Atom\'><id></id><title>My Blog</title><updated></updated><author><name>N. Blogger</name></author><entry><id></id><title>My first post!</title><updated></updated><content type='text'>This is my first post</content></entry></feed>");
     }
 
     // Source: https://github.com/frewsxcv/rust-rss/blob/master/src/lib.rs
