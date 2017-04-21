@@ -41,6 +41,7 @@ pub struct Entry {
     // `summary` in Atom
     pub summary: Option<String>,
     // `content` in Atom, `description` in RSS
+    // TODO: Change this to include the type information from atom_syndication
     pub content: Option<String>,
 
     // TODO: Figure out the `source` field in the Atom Entry type (It refers to
@@ -72,7 +73,10 @@ impl From<atom::Entry> for Entry {
                 .and_then(|d| DateTime::parse_from_rfc3339(d.as_str()).ok())
                 .map(|date| date.with_timezone(&UTC)),
             summary: entry.summary,
-            content: entry.content,
+            content: entry.content.map(|x| match x {
+                atom::Content::Text(s) | atom::Content::Html(s) => s,
+                atom::Content::Xhtml(x) => x.to_string(),
+            }),
             links: entry.links.into_iter().map(|link| link.into()).collect(),
             categories: entry.categories.into_iter().map(|category| category.into()).collect(),
             authors: entry.authors.into_iter().map(|person| person.into()).collect(),
@@ -96,7 +100,7 @@ impl From<Entry> for atom::Entry {
                 // TODO: Figure out this thing...
                 source: None,
                 summary: entry.summary,
-                content: entry.content,
+                content: entry.content.map(atom::Content::Text),
                 links: entry.links.into_iter().map(|link| link.into()).collect(),
                 categories: entry.categories.into_iter().map(|category| category.into()).collect(),
                 authors: entry.authors.into_iter().map(|person| person.into()).collect(),

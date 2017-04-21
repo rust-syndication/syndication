@@ -28,6 +28,17 @@ impl Debug for FeedData {
     }
 }
 
+impl ToString for Feed {
+    fn to_string(&self) -> String {
+        match self.source_data {
+            Some(FeedData::Atom(ref atom_feed)) => atom_feed.to_string(),
+            Some(FeedData::Rss(ref rss_channel)) => rss::Rss(rss_channel.clone()).to_string(),
+            None => self.to_atom_string()
+        }
+    }
+}
+
+
 // A helpful table of approximately equivalent elements can be found here:
 // http://www.intertwingly.net/wiki/pie/Rss20AndAtom10Compared#table
 #[derive(Debug, Clone)]
@@ -336,7 +347,7 @@ mod test {
 
         let entry = atom::Entry {
             title: "My first post!".to_string(),
-            content: Some("This is my first post".to_string()),
+            content: Some(atom::Content::Text("This is my first post".to_string())),
             ..Default::default()
         };
 
@@ -352,7 +363,7 @@ mod test {
                     xmlns=\'http://www.w3.org/2005/Atom\'><id></id><title>My \
                     Blog</title><updated></updated><author><name>N. \
                     Blogger</name></author><entry><id></id><title>My first \
-                    post!</title><updated></updated><content>This is my first \
+                    post!</title><updated></updated><content type='text'>This is my first \
                     post</content></entry></feed>");
     }
 
