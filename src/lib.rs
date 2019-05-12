@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+#[derive(Clone)]
 pub enum Feed {
     Atom(atom_syndication::Feed),
     RSS(rss::Channel),
