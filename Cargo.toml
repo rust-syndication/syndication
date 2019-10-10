@@ -10,4 +10,4 @@ exclude = ["test-data/*"]
 
 [dependencies]
 atom_syndication = "0.6.0"
-rss = "1.7.0"
+rss = "1.8.0"
