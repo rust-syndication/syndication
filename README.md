@@ -3,7 +3,7 @@
 [![Cargo Version](https://img.shields.io/crates/v/syndication.svg)](https://crates.io/crates/syndication)
 [![Build Status](https://travis-ci.org/tomshen/rust-syndication.svg?branch=master)](https://travis-ci.org/tomshen/rust-syndication)
 
-Library for serializing Atom and RSS web feeds. Wraps around [rust-atom](https://github.com/vtduncan/rust-atom) and [rust-rss](https://github.com/frewsxcv/rust-rss).
+Library for serializing Atom and RSS web feeds. Wraps around [rust-atom](https://github.com/rust-syndication/atom) and [rust-rss](https://github.com/rust-syndication/rss).
 
 ## Usage
 
