@@ -83,7 +83,7 @@ mod test {
             .build()
             .unwrap();
 
-        assert_eq!(feed.to_string(), "<feed xmlns=\"http://www.w3.org/2005/Atom\"><title>My Blog</title><id></id><updated></updated><author><name>N. Blogger</name></author><entry><title>My first post!</title><id></id><updated></updated><content>This is my first post</content></entry></feed>");
+        assert_eq!(feed.to_string(), "<feed xmlns=\"http://www.w3.org/2005/Atom\"><title>My Blog</title><id></id><updated>1970-01-01T00:00:00+00:00</updated><author><name>N. Blogger</name></author><entry><title>My first post!</title><id></id><updated>1970-01-01T00:00:00+00:00</updated><content>This is my first post</content></entry></feed>");
     }
 
     // Source: https://github.com/frewsxcv/rust-rss/blob/master/src/lib.rs
