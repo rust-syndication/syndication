@@ -62,28 +62,24 @@ mod test {
     fn test_atom_to_string() {
         let author = atom_syndication::PersonBuilder::default()
             .name("N. Blogger")
-            .build()
-            .unwrap();
+            .build();
 
         let entry = atom_syndication::EntryBuilder::default()
             .title("My first post!")
             .content(
                 atom_syndication::ContentBuilder::default()
                     .value("This is my first post".to_string())
-                    .build()
-                    .unwrap(),
+                    .build(),
             )
-            .build()
-            .unwrap();
+            .build();
 
         let feed = atom_syndication::FeedBuilder::default()
             .title("My Blog")
             .authors(vec![author])
             .entries(vec![entry])
-            .build()
-            .unwrap();
+            .build();
 
-        assert_eq!(feed.to_string(), "<feed xmlns=\"http://www.w3.org/2005/Atom\"><title>My Blog</title><id></id><updated>1970-01-01T00:00:00+00:00</updated><author><name>N. Blogger</name></author><entry><title>My first post!</title><id></id><updated>1970-01-01T00:00:00+00:00</updated><content>This is my first post</content></entry></feed>");
+        assert_eq!(feed.to_string(), "<?xml version=\"1.0\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\"><title>My Blog</title><id></id><updated>1970-01-01T00:00:00+00:00</updated><author><name>N. Blogger</name></author><entry><title>My first post!</title><id></id><updated>1970-01-01T00:00:00+00:00</updated><content>This is my first post</content></entry></feed>");
     }
 
     // Source: https://github.com/frewsxcv/rust-rss/blob/master/src/lib.rs
@@ -93,18 +89,16 @@ mod test {
             .title("My first post!".to_string())
             .link("http://myblog.com/post1".to_string())
             .description("This is my first post".to_string())
-            .build()
-            .unwrap();
+            .build();
 
         let channel = rss::ChannelBuilder::default()
             .title("My Blog")
             .link("http://myblog.com")
             .description("Where I write stuff")
             .items(vec![item])
-            .build()
-            .unwrap();
+            .build();
 
         let rss = Feed::RSS(channel);
-        assert_eq!(rss.to_string(), "<rss version=\"2.0\"><channel><title>My Blog</title><link>http://myblog.com</link><description>Where I write stuff</description><item><title>My first post!</title><link>http://myblog.com/post1</link><description><![CDATA[This is my first post]]></description></item></channel></rss>");
+        assert_eq!(rss.to_string(), "<?xml version=\"1.0\" encoding=\"utf-8\"?><rss version=\"2.0\"><channel><title>My Blog</title><link>http://myblog.com</link><description>Where I write stuff</description><item><title>My first post!</title><link>http://myblog.com/post1</link><description><![CDATA[This is my first post]]></description></item></channel></rss>");
     }
 }
