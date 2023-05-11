@@ -17,12 +17,11 @@ fn main() {
     </feed>
     "#;
 
-    match atom_str.parse::<Feed>().unwrap() {
-        Feed::Atom(atom_feed) => println!(
+    if let Feed::Atom(atom_feed) = atom_str.parse::<Feed>().unwrap() {
+        println!(
             "Atom feed first entry: {:?}",
             atom_feed.entries()[0].title()
-        ),
-        _ => {}
+        );
     };
 
     let rss_str = r#"
@@ -41,8 +40,7 @@ fn main() {
     </rss>
     "#;
 
-    match rss_str.parse::<Feed>().unwrap() {
-        Feed::RSS(rss_feed) => println!("RSS feed first entry: {:?}", rss_feed.items()[0].title()),
-        _ => {}
+    if let Feed::RSS(rss_feed) = rss_str.parse::<Feed>().unwrap() {
+        println!("RSS feed first entry: {:?}", rss_feed.items()[0].title());
     };
 }

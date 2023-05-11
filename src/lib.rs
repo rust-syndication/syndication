@@ -23,8 +23,8 @@ impl FromStr for Feed {
 impl ToString for Feed {
     fn to_string(&self) -> String {
         match self {
-            &Feed::Atom(ref atom_feed) => atom_feed.to_string(),
-            &Feed::RSS(ref rss_channel) => rss_channel.to_string(),
+            Feed::Atom(atom_feed) => atom_feed.to_string(),
+            Feed::RSS(rss_channel) => rss_channel.to_string(),
         }
     }
 }
@@ -44,7 +44,7 @@ mod test {
         let mut atom_string = String::new();
         file.read_to_string(&mut atom_string).unwrap();
         let feed = Feed::from_str(&atom_string).unwrap();
-        assert!(feed.to_string().len() > 0);
+        assert!(!feed.to_string().is_empty());
     }
 
     // Source: https://github.com/frewsxcv/rust-rss/blob/master/src/lib.rs
@@ -54,7 +54,7 @@ mod test {
         let mut rss_string = String::new();
         file.read_to_string(&mut rss_string).unwrap();
         let rss = Feed::from_str(&rss_string).unwrap();
-        assert!(rss.to_string().len() > 0);
+        assert!(!rss.to_string().is_empty());
     }
 
     // Source: https://github.com/vtduncan/rust-atom/blob/master/src/lib.rs
@@ -66,11 +66,11 @@ mod test {
 
         let entry = atom_syndication::EntryBuilder::default()
             .title("My first post!")
-            .content(
+            .content(Some(
                 atom_syndication::ContentBuilder::default()
-                    .value("This is my first post".to_string())
+                    .value(Some("This is my first post".to_string()))
                     .build(),
-            )
+            ))
             .build();
 
         let feed = atom_syndication::FeedBuilder::default()
@@ -86,9 +86,9 @@ mod test {
     #[test]
     fn test_rss_to_string() {
         let item = rss::ItemBuilder::default()
-            .title("My first post!".to_string())
-            .link("http://myblog.com/post1".to_string())
-            .description("This is my first post".to_string())
+            .title(Some("My first post!".to_string()))
+            .link(Some("http://myblog.com/post1".to_string()))
+            .description(Some("This is my first post".to_string()))
             .build();
 
         let channel = rss::ChannelBuilder::default()
